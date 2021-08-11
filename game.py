@@ -38,6 +38,7 @@ CHARACTER_SCALING = 1.2
 TILE_SCALING = 0.5
 SPRITE_SCALING_BULLET = 1
 AR_SCALING = 1.4
+ENEMY_SCALING
 
 "pixel var"
 SPRITE_PIXEL_SIZE = 128
@@ -321,7 +322,7 @@ class Enemy (arcade.Sprite):
         # Used for flipping between image sequences
         self.cur_texture = 0
         
-        self.scale = CHARACTER_SCALING
+        self.scale = ENEMY_SCALING
 
 
         #animation handling
