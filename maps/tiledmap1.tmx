@@ -146,7 +146,7 @@
 </data>
  </layer>
  <objectgroup id="18" name="enemy">
-  <object id="13" gid="1" x="1154.03" y="1665.13" width="128" height="128"/>
-  <object id="14" gid="1" x="2427.73" y="970.977" width="128" height="128"/>
+  <object id="13" gid="1" x="1926.76" y="2287.24" width="128" height="128"/>
+  <object id="14" gid="1" x="2427.73" y="1023.37" width="128" height="128"/>
  </objectgroup>
 </map>

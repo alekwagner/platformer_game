@@ -17,6 +17,8 @@ import os
 from arcade.experimental.lights import Light, LightLayer
 from pathlib import Path, WindowsPath
 
+from pyglet import window
+import time
 
 
 
@@ -29,6 +31,9 @@ SCREEN_WIDTH = 1000
 SCREEN_HEIGHT = 650
 SCREEN_TITLE = "game"
 
+"vol var"
+MUSIC_VOLUME = 0.5
+
 START = 0
 END = 2000
 STEP = 50
@@ -36,9 +41,9 @@ STEP = 50
 "scaling var"
 CHARACTER_SCALING = 1.2
 TILE_SCALING = 0.5
-SPRITE_SCALING_BULLET = 1
+SPRITE_SCALING_BULLET = 0.25
 AR_SCALING = 1.4
-ENEMY_SCALING
+ENEMY_SCALING = 1.5
 
 "pixel var"
 SPRITE_PIXEL_SIZE = 128
@@ -48,12 +53,13 @@ GRID_PIXEL_SIZE = (SPRITE_PIXEL_SIZE * TILE_SCALING)
 PLAYER_MOVEMENT_SPEED = 5
 GRAVITY = 1
 PLAYER_JUMP_SPEED = 20
-BULLET_SPEED = 20
+BULLET_SPEED = 25
 
 "enemy mechanics"
-ENEMY_ACCELERATION_RATE = 0.2
+ENEMY_ACCELERATION_RATE = 0.1
 ENEMY_FRICTION = 0.05
 ENEMY_MAX_SPEED = 6
+ENEMY_TURN_RATE = 1
 
 
 # scrapped var ENEMY_MAX_WONDER_SPEED = 1
@@ -75,8 +81,13 @@ PLAYER_LIGHT_RADIUS = 150
 PLAYER_LIGHT_MODE = 'soft'
 PLAYER_LIGHT_COLOR = (300, 300, 300)
 
+"""frame rates"""
 PLAYER_FRAMES = 32
 PLAYER_FRAMES_PER_TEXTURE = 3
+ENEMY_WALK_FRAMES = 7
+ENEMY_ATTACK_FRAMES = 25
+ENEMY_WALK_FRAMES_PER_TEXTURE = 4
+ENEMY_ATTACK_FRAMES_PER_TEXTURE =1
 
 
 
@@ -123,13 +134,13 @@ class PlayerCharacter(arcade.Sprite):
         # --- Load Textures ---
 
        
-        main_path = "assets/aniamations/"
+        main_path = "assets/aniamations/player/"
        
 
-        # Load textures for idle standing
+        """ Load textures for idle standing """
         self.idle_texture_pair = load_texture_pair(f"{main_path}The waste of space player_idle.png")
         self.jump_texture_pair = load_texture_pair(f"{main_path}The waste of space player_jump.png")
-        self.fall_texture_pair = load_texture_pair(f"{main_path}The waste of space player_fall.png")
+     
 
         # Load textures for walking
         self.walk_textures = []
@@ -137,12 +148,12 @@ class PlayerCharacter(arcade.Sprite):
             texture = load_texture_pair(f"{main_path}walk/The waste of space player_walk{i}.png")
             self.walk_textures.append(texture)
 
-        # Load textures for climbing
+        """# Load textures for climbing
         self.climbing_textures = []
         texture = arcade.load_texture(f"{main_path}The waste of space player_climb0.png")
         self.climbing_textures.append(texture)
         texture = arcade.load_texture(f"{main_path}The waste of space player_climb1.png")
-        self.climbing_textures.append(texture)
+        self.climbing_textures.append(texture)"""
 
         # Set the initial texture
         self.texture = self.idle_texture_pair[0]
@@ -156,7 +167,7 @@ class PlayerCharacter(arcade.Sprite):
 
     def update_animation(self, delta_time: 1/2):
 
-        # Climbing animation
+        """# Climbing animation
         if self.is_on_ladder:
             self.climbing = True
         if not self.is_on_ladder and self.climbing:
@@ -168,22 +179,20 @@ class PlayerCharacter(arcade.Sprite):
         if self.climbing:
             self.texture = self.climbing_textures[self.cur_climbing_texture // 4]
             return
+"""
 
-
-        # Jumping animation
+        """ Jumping animation """
         if self.change_y > 0 and not self.is_on_ladder:
             self.texture = self.jump_texture_pair[self.character_face_direction]
             return
-        elif self.change_y < 0 and not self.is_on_ladder:
-            self.texture = self.fall_texture_pair[self.character_face_direction]
-            return
+        
 
-        # Idle animation
-        if self.change_x == 0:
+        """ Idle animation """
+        if self.change_x == 0 or self.is_on_ladder == True:
             self.texture = self.idle_texture_pair[self.character_face_direction]
             return
 
-        #walk animation
+        """ walk animation """
         self.virtual_textures +=1
         if self.virtual_textures > PLAYER_FRAMES*PLAYER_FRAMES_PER_TEXTURE -1:
             self.virtual_textures = 0
@@ -273,8 +282,8 @@ class Bullet(arcade.Sprite):
     def __init__(self, light_layer):
         super().__init__()
         self.light_layer = light_layer
-        self.texture = arcade.load_texture(f"assets\Floor_board_wall.png")
-        self.scale = SPRITE_SCALING_BULLET/4
+        self.texture = arcade.load_texture(f"assets/plasma bullet.png")
+        self.scale = SPRITE_SCALING_BULLET
         self.light = Light( -1000, -1000, 300,(100,100,300),'soft')
         self.light_layer.add(self.light)
 
@@ -317,32 +326,41 @@ class Enemy (arcade.Sprite):
         "animations"
 
         # Default to face-right
-        self.character_face_direction = RIGHT_FACING
+        self.face_direction = ENEMY_RIGHT_FACING
 
         # Used for flipping between image sequences
-        self.cur_texture = 0
+        self.walk_cur_texture = 0
+        self.attack_cur_texture = 0
         
         self.scale = ENEMY_SCALING
 
 
         #animation handling
-        self.virtual_textures = 0
+        self.walk_virtual_textures = 0
+        self.attack_virtual_textures = 0
 
         # --- Load Textures ---
 
        
-        main_path = "assets/aniamations\The waste of space player_idle.png"
+        main_path = "assets/aniamations\enemy/"
        
 
         # Load textures for idle standing
-        self.idle_texture_pair = load_enemy_texture_pair(f"{main_path}")
+        self.idle_texture_pair = load_enemy_texture_pair(f"{main_path}enemy_idle.png")
         
 
         # Load textures for walking
         self.walk_textures = []
-        for i in range(PLAYER_FRAMES):
-            texture = load_enemy_texture_pair(f"{main_path}")
+        for i in range(ENEMY_WALK_FRAMES):
+            texture = load_enemy_texture_pair(f"{main_path}enemy_walk\enemy_walk{i}.png")
             self.walk_textures.append(texture)
+
+
+        # #load attack
+        # self.attack_textures = []
+        # for i in range(ENEMY_ATTACK_FRAMES):
+        #     texture = load_enemy_texture_pair(f"{main_path}enemy_idle.png")
+        #     self.attack_textures.append(texture)
 
 
         # Set the initial texture
@@ -357,25 +375,44 @@ class Enemy (arcade.Sprite):
         self.health = 100
 
         self.awake = False
-        self.on_attack = True
-
-
+        self.attacking = False
+        self.attack_impact = False
+        self.attack_needs_reset = False
+        self.scream = False
+        
     def update_animation(self, delta_time: 1/2):
 
         # Idle animation
         if self.change_x == 0:
-            self.texture = self.idle_texture_pair[self.character_face_direction]
+            self.texture = self.idle_texture_pair[self.face_direction]
             return
 
-        """#walk animation
-        self.virtual_textures +=1
-        if self.virtual_textures > PLAYER_FRAMES*PLAYER_FRAMES_PER_TEXTURE -1:
-            self.virtual_textures = 0
-            self.cur_texture = 0
-        if (self.virtual_textures +1)%PLAYER_FRAMES_PER_TEXTURE == 0:
-            self.cur_texture = self.virtual_textures // PLAYER_FRAMES_PER_TEXTURE
-            self.texture = self.walk_textures[self.cur_texture][self.character_face_direction]"""
+        #walk animation
+        self.walk_virtual_textures +=1
+        if self.walk_virtual_textures > ENEMY_WALK_FRAMES*ENEMY_WALK_FRAMES_PER_TEXTURE -1:
+            self.walk_virtual_textures = 0
+            self.walk_cur_texture = 0
+        if (self.walk_virtual_textures +1)%ENEMY_WALK_FRAMES_PER_TEXTURE == 0:
+            self.walk_cur_texture = self.walk_virtual_textures // ENEMY_WALK_FRAMES_PER_TEXTURE
+            self.texture = self.walk_textures[self.walk_cur_texture][self.face_direction]
 
+        # #attack animation
+        # if self.attacking == True:
+        #     self.attack_virtual_textures +=1
+        #     if self.attack_cur_texture == 20:
+        #         self.attack_impact = True
+        #     else: 
+        #         self.attack_impact = False
+
+        #     if self.attack_cur_texture == ENEMY_ATTACK_FRAMES:
+        #         self.attacking = False
+                
+        #     if self.attack_virtual_textures > ENEMY_ATTACK_FRAMES*ENEMY_ATTACK_FRAMES_PER_TEXTURE -1:
+        #         self.attack_virtual_textures = 0
+        #         self.attack_cur_texture = 0
+        #     if (self.attack_virtual_textures +1)%ENEMY_ATTACK_FRAMES_PER_TEXTURE == 0:
+        #         self.attack_cur_texture = self.attack_virtual_textures // ENEMY_ATTACK_FRAMES_PER_TEXTURE
+        #         self.texture = self.attack_textures[self.attack_cur_texture][self.face_direction]
          
 
     def take_20_health(self):
@@ -383,6 +420,7 @@ class Enemy (arcade.Sprite):
         self.health -= 20
         if self.health <= 0:
             self.remove_from_sprite_lists()
+            
 
 
         
@@ -447,8 +485,8 @@ class MyGame(arcade.Window):
         self.level = 1
        
         # Load sounds
-        self.gun_sound = arcade.sound.load_sound(":resources:sounds/laser1.wav")
-        self.hit_sound = arcade.sound.load_sound(":resources:sounds/phaseJump1.wav")
+        self.gun_sound = arcade.sound.load_sound("sound\gun shot.mp3")
+        self.hit_sound = arcade.sound.load_sound("sound\screaming.mp3")
      
      # --- Light related ---
         # List of all the lights
@@ -457,6 +495,32 @@ class MyGame(arcade.Window):
         self.player_light = None
 
         self.bullet_light = None
+
+        """from python arcade"""
+        # Variables used to manage our music. See setup() for giving them
+        # values.
+        self.music_list = []
+        self.current_song_index = 0
+        self.current_player = None
+        self.music = None
+ 
+    def advance_song(self):
+        """ Advance our pointer to the next song. This does NOT start the song. """
+        self.current_song_index += 1
+        if self.current_song_index >= len(self.music_list):
+            self.current_song_index = 0
+        
+ 
+    def play_song(self):
+        """ Play the song. """
+         # Stop what is currently playing.
+        if self.music:
+            self.music.stop(self.current_player)
+ 
+         # Play the next song
+        self.music = arcade.Sound(self.music_list[self.current_song_index], streaming=True)
+        self.current_player = self.music.play(MUSIC_VOLUME)
+        time.sleep(0.0)
 
 
 
@@ -576,12 +640,12 @@ class MyGame(arcade.Window):
         if my_map.background_color:
             arcade.set_background_color(my_map.background_color)
         
-          # Create the 'physics engine'
-        self.physics_engine = arcade.PhysicsEnginePlatformer(self.player_sprite,
-                                                             self.wall_list,
-                                                             gravity_constant=GRAVITY,
-                                                             ladders=self.ladder_list)
-      
+        #   # Create the 'physics engine'
+        # self.physics_engine = arcade.PhysicsEnginePlatformer(self.player_sprite,
+        #                                                      self.wall_list,
+        #                                                      gravity_constant=GRAVITY,
+        #                                                      ladders=self.ladder_list)
+        
         # Create a light layer, used to render things to, then post-process and
         # add lights. This must match the screen size.
         self.light_layer = LightLayer(SCREEN_WIDTH, SCREEN_HEIGHT)
@@ -611,8 +675,27 @@ class MyGame(arcade.Window):
                 enemy.center_y = enemy_spawn.center_y
                 self.enemy_list.append(enemy)
 
+        self.engines_list = []
+        self.physics_engine = arcade.PhysicsEnginePlatformer(self.player_sprite, self.wall_list, GRAVITY,
+                                                             ladders=self.ladder_list)
+        self.engines_list.append(self.physics_engine)
+        for enemy in self.enemy_list:
+            enemy_engine = arcade.PhysicsEnginePlatformer(enemy, self.wall_list, GRAVITY)
+            self.engines_list.append(enemy_engine)
 
         self.skybox_sprite = arcade.load_texture("assets\sky box.png")
+
+        """from arcade"""
+        """music list"""
+        # List of music
+        self.music_list = ["sound/final background noise.mp3", "sound\music track.mp3", "sound\monster sounds.mp3"]
+        # Array index of what to play
+        self.current_song_index = 0
+        # Play the song
+        self.play_song()
+        
+
+        
 
 
 
@@ -621,6 +704,21 @@ class MyGame(arcade.Window):
         # Clear the screen to the background color
         arcade.start_render()
         
+        position = self.music.get_stream_position(self.current_player)
+        length = self.music.get_length()
+        size = 20
+        margin = size * .5
+ 
+        # Print time elapsed and total
+        y = SCREEN_HEIGHT - (size + margin)
+        text = f"{int(position) // 60}:{int(position) % 60:02} of {int(length) // 60}:{int(length) % 60:02}"
+        arcade.draw_text(text, 0, y, arcade.csscolor.BLACK, size)
+ 
+        # Print current song
+        y -= size + margin
+        text = f"Currently playing: {self.music_list[self.current_song_index]}"
+        arcade.draw_text(text, 0, y, arcade.csscolor.BLACK, size)
+
         # Draw our Scene/ all the sprites
         # --- Light related ---
         # Everything that should be affected by lights gets rendered inside this
@@ -731,6 +829,7 @@ class MyGame(arcade.Window):
 
         # Create a bullet
         bullet = Bullet(self.light_layer)
+        arcade.play_sound(self.gun_sound)
         start_x = self.player_sprite.center_x
         start_y = self.player_sprite.center_y
         bullet.center_x = start_x
@@ -759,6 +858,16 @@ class MyGame(arcade.Window):
         bullet.change_x = math.cos(angle_in_radians) * BULLET_SPEED
         bullet.change_y = math.sin(angle_in_radians) * BULLET_SPEED
         self.bullet_list.append(bullet)
+
+        self.ar_sprite.angle = math.degrees(angle_in_radians)
+       
+
+        if angle_in_radians > math.pi / 2 or angle_in_radians < -math.pi/2:
+            self.player_sprite.character_face_direction = LEFT_FACING
+            self.ar_sprite.AR_face_direction = AR_LEFT_FACING
+        else:
+            self.player_sprite.character_face_direction = RIGHT_FACING
+            self.ar_sprite.AR_face_direction = AR_RIGHT_FACING
         
 
     def on_mouse_motion(self, x, y, dx, dy):
@@ -797,9 +906,21 @@ class MyGame(arcade.Window):
     
 
     def on_update(self, delta_time):  
+
+        position = self.music.get_stream_position(self.current_player)
+ 
+         # The position pointer is reset to 0 right after we finish the song.
+         # This makes it very difficult to figure out if we just started playing
+         # or if we are doing playing.
+        if position == 0.0:
+            self.advance_song()
+            self.play_song()
         
+        for engines in self.engines_list:
+            engines.update()
+
         """ move player with physics engine"""         
-        self.physics_engine.update()
+        # self.physics_engine.update()
 
         """ Update animations """
         if self.physics_engine.can_jump():
@@ -839,32 +960,38 @@ class MyGame(arcade.Window):
                 bullet.kill()
                 # think about changing this to make the bullet delet when it leaves the view port
 
-
         'enemy'
         self.enemy_list.update()
 
-        for enemy in self.enemy_list:
+        for enemy in self.enemy_list:                         
 
             
-
+            """death"""
             if len(arcade.check_for_collision_with_list(enemy, self.bullet_list)) > 0:
                enemy.take_20_health()
                bullet.kill()
+               
 
 
-            # If the enemy hit a wall, reverse
+            """If the enemy hit a wall, reverse"""
             
             if len(arcade.check_for_collision_with_list(enemy, self.wall_list)) > 0:
                 enemy.change_x *= -1
 
-            if enemy.health <100 or arcade.has_line_of_sight(self.player_sprite.position,
-                                                enemy.position,
-                                                self.wall_list) and self.player_sprite.center_x -100 < enemy.center_x and self.player_sprite.center_x +100 > enemy.center_x: 
+            """waking up"""
+            if enemy.health <100 and enemy.awake == False or enemy.awake == False and self.player_sprite.center_x -100 < enemy.center_x and self.player_sprite.center_x +100 > enemy.center_x and self.player_sprite.center_y -100 < enemy.center_y and self.player_sprite.center_y +100 > enemy.center_y: 
                 enemy.awake = True
-
+                enemy.scream = True
+                
+            "seeing and chasing"
             if enemy.awake == True and arcade.has_line_of_sight(self.player_sprite.position,
                                                 enemy.position,
                                                 self.wall_list):
+
+                if enemy.scream == True:
+                    arcade.play_sound(self.hit_sound,0.01)
+                    enemy.scream = False
+
                 "enemy friction"
                 if enemy.change_x > ENEMY_FRICTION:
                     enemy.change_x -= ENEMY_FRICTION
@@ -872,28 +999,46 @@ class MyGame(arcade.Window):
                     enemy.change_x += ENEMY_FRICTION
                 else:
                     enemy.change_x = 0
-                "enemy "
-                if self.player_sprite.center_x < enemy.center_x:
+                "enemy chase player movement"
+                if self.player_sprite.center_x +1 < enemy.center_x:
                    enemy.change_x -= ENEMY_ACCELERATION_RATE
-                elif self.player_sprite.center_x > enemy.center_x:
+                   
+                elif self.player_sprite.center_x - 1 > enemy.center_x:
                     enemy.change_x += ENEMY_ACCELERATION_RATE
 
+                else:
+                    enemy.change_x = 0
+
+                """enemy max speed"""   
                 if enemy.change_x > ENEMY_MAX_SPEED:
                     enemy.change_x = ENEMY_MAX_SPEED
                 elif enemy.change_x < -ENEMY_MAX_SPEED:
                     enemy.change_x = -ENEMY_MAX_SPEED
+
+            """enemy turning and face direction"""
+            if enemy.change_x < -ENEMY_TURN_RATE:
+                enemy.face_direction = ENEMY_LEFT_FACING
+
+            if enemy.change_x > ENEMY_TURN_RATE:
+                enemy.face_direction = ENEMY_RIGHT_FACING
+
+            if enemy.center_y == -100:
+                enemy.kill()
+
+            """elif enemy.change_x > ENEMY_MAX_WONDER_SPEED:
+                enemy.change_x = ENEMY_MAX_WONDER_SPEED
+            elif enemy.change_x < -ENEMY_MAX_WONDER_SPEED:
+                enemy.change_x = -ENEMY_MAX_WONDER_SPEED"""
             
-                """elif enemy.change_x > ENEMY_MAX_WONDER_SPEED:
-                    enemy.change_x = ENEMY_MAX_WONDER_SPEED
-                elif enemy.change_x < -ENEMY_MAX_WONDER_SPEED:
-                    enemy.change_x = -ENEMY_MAX_WONDER_SPEED"""
-        
-                if arcade.has_line_of_sight(self.player_sprite.position,
-                                                enemy.position,
-                                                self.wall_list) and self.player_sprite.center_x -200 < enemy.center_x and self.player_sprite.center_x +200 > enemy.center_x: 
-                        enemy.attacking = True
-                        if enemy.on_attack == True:
-                            self.player_sprite.take_20_health()
+            # if arcade.has_line_of_sight(self.player_sprite.position,
+            #                                 enemy.position,
+            #                                 self.wall_list) and self.player_sprite.center_x -200 < enemy.center_x and self.player_sprite.center_x +200 > enemy.center_x: 
+            #         enemy.attacking = True
+            #         if enemy.attack_impact == True:
+            #             self.player_sprite.take_20_health()
+            #             enemy.attack_impact = False
+                            
+            # enemy.attack_impact = False
 
             
                 
@@ -939,10 +1084,11 @@ class MyGame(arcade.Window):
         # Did the player touch something they should not?
         if arcade.check_for_collision_with_list(self.player_sprite,
                                                 self.dont_touch_list):
-            self.player_sprite.change_x = 0
-            self.player_sprite.change_y = 0
-            self.player_sprite.center_x = PLAYER_START_X
-            self.player_sprite.center_y = PLAYER_START_Y
+            self.player_sprite.take_20_health()
+            self.player_sprite.take_20_health()
+            self.player_sprite.take_20_health()
+            self.player_sprite.take_20_health()
+            self.player_sprite.take_20_health()
 
             # Set the camera to the start
             self.view_left = 0
@@ -952,7 +1098,7 @@ class MyGame(arcade.Window):
 
         "manage level"
         # See if the user got to the end of the level
-        if self.player_sprite.center_x >= self.end_of_map_weight and self.level <3:
+        if self.player_sprite.center_x >= self.end_of_map_weight and self.level <4:
             # Advance to the next level
             self.level += 1
 
