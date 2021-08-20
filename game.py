@@ -1,13 +1,3 @@
-"""todo
-add a gameover and death when u stay near enemy to long
-make code for enemy animations and for the enemy waking up
-make a tile that spawns a enemy on it 
-"""
-
-
-
-
-
 
 
 import random
@@ -19,12 +9,6 @@ from pathlib import Path, WindowsPath
 
 from pyglet import window
 import time
-
-
-
-
-
-
 
 "screen var"
 SCREEN_WIDTH = 1000
@@ -64,8 +48,6 @@ ENEMY_TURN_RATE = 1
 
 # scrapped var ENEMY_MAX_WONDER_SPEED = 1
 
-
-
 # How many pixels to keep as a minimum margin between the character
 # and the edge of the screen.
 LEFT_VIEWPORT_MARGIN = 250
@@ -81,18 +63,13 @@ PLAYER_LIGHT_RADIUS = 150
 PLAYER_LIGHT_MODE = 'soft'
 PLAYER_LIGHT_COLOR = (300, 300, 300)
 
-"""frame rates"""
+#frame rates
 PLAYER_FRAMES = 32
 PLAYER_FRAMES_PER_TEXTURE = 3
 ENEMY_WALK_FRAMES = 7
 ENEMY_ATTACK_FRAMES = 25
 ENEMY_WALK_FRAMES_PER_TEXTURE = 4
 ENEMY_ATTACK_FRAMES_PER_TEXTURE =1
-
-
-
-
-
 
 # Constants used to track if the player is facing left or right
 RIGHT_FACING = 0
@@ -167,32 +144,32 @@ class PlayerCharacter(arcade.Sprite):
 
     def update_animation(self, delta_time: 1/2):
 
-        """# Climbing animation
-        if self.is_on_ladder:
-            self.climbing = True
-        if not self.is_on_ladder and self.climbing:
-            self.climbing = False
-        if self.climbing and abs(self.change_y) > 1:
-            self.cur_climbing_texture += 1
-            if self.cur_climbing_texture > 7:
-                self.cur_climbing_texture = 0
-        if self.climbing:
-            self.texture = self.climbing_textures[self.cur_climbing_texture // 4]
-            return
-"""
+        # # Climbing animation
+        # if self.is_on_ladder:
+        #     self.climbing = True
+        # if not self.is_on_ladder and self.climbing:
+        #     self.climbing = False
+        # if self.climbing and abs(self.change_y) > 1:
+        #     self.cur_climbing_texture += 1
+        #     if self.cur_climbing_texture > 7:
+        #         self.cur_climbing_texture = 0
+        # if self.climbing:
+        #     self.texture = self.climbing_textures[self.cur_climbing_texture // 4]
+        #     return
 
-        """ Jumping animation """
+
+        # Jumping animation 
         if self.change_y > 0 and not self.is_on_ladder:
             self.texture = self.jump_texture_pair[self.character_face_direction]
             return
         
 
-        """ Idle animation """
+        # Idle animation 
         if self.change_x == 0 or self.is_on_ladder == True:
             self.texture = self.idle_texture_pair[self.character_face_direction]
             return
 
-        """ walk animation """
+        # walk animation 
         self.virtual_textures +=1
         if self.virtual_textures > PLAYER_FRAMES*PLAYER_FRAMES_PER_TEXTURE -1:
             self.virtual_textures = 0
@@ -207,9 +184,6 @@ class PlayerCharacter(arcade.Sprite):
         if self.health <= 0:
             self.center_x = PLAYER_START_X
             self.center_y = PLAYER_START_Y
-       
-
-
 
 AR_RIGHT_FACING = 0
 AR_LEFT_FACING = 1
@@ -298,12 +272,9 @@ class Bullet(arcade.Sprite):
     def kill(self):
         
         self.remove_from_sprite_lists()
-        self.light_layer.remove(self.light)
+        self.light_layer.remove(self.light)      
         
-        
-        
-        
-""" Constants used to track if the player is facing left or right """
+# Constants used to track if the player is facing left or right 
 ENEMY_RIGHT_FACING = 0
 ENEMY_LEFT_FACING = 1
 
@@ -371,7 +342,7 @@ class Enemy (arcade.Sprite):
         # self.set_hit_box([[-22, -64], [22, -64], [22, 28], [-22, 28]])
         self.set_hit_box(self.texture.hit_box_points)
 
-        "health"
+        #health
         self.health = 100
 
         self.awake = False
@@ -416,7 +387,7 @@ class Enemy (arcade.Sprite):
          
 
     def take_20_health(self):
-        "this is what happens when enmey takes damage"
+        #this is what happens when enmey takes damage
         self.health -= 20
         if self.health <= 0:
             self.remove_from_sprite_lists()
@@ -496,7 +467,7 @@ class MyGame(arcade.Window):
 
         self.bullet_light = None
 
-        """from python arcade"""
+        #from python arcade
         # Variables used to manage our music. See setup() for giving them
         # values.
         self.music_list = []
@@ -505,14 +476,13 @@ class MyGame(arcade.Window):
         self.music = None
  
     def advance_song(self):
-        """ Advance our pointer to the next song. This does NOT start the song. """
+        #Advance our pointer to the next song. This does NOT start the song. 
         self.current_song_index += 1
         if self.current_song_index >= len(self.music_list):
             self.current_song_index = 0
         
- 
     def play_song(self):
-        """ Play the song. """
+        #Play the song. 
          # Stop what is currently playing.
         if self.music:
             self.music.stop(self.current_player)
@@ -522,13 +492,9 @@ class MyGame(arcade.Window):
         self.current_player = self.music.play(MUSIC_VOLUME)
         time.sleep(0.0)
 
-
-
     def setup(self, level):
      # set up the game here. call this function to restart the game
      
-       
-
         # Used to keep track of our scrolling
         self.view_bottom = 0
         self.view_left = 0
@@ -542,10 +508,6 @@ class MyGame(arcade.Window):
         self.bullet_list = arcade.SpriteList()
         self.ar_list = arcade.SpriteList()
 
-        
-        
-        
-
         # set up player and player start position
         self.player_sprite = PlayerCharacter()
         self.player_sprite.center_x = PLAYER_START_X
@@ -556,8 +518,6 @@ class MyGame(arcade.Window):
         self.ar_sprite.center_x = PLAYER_START_X
         self.ar_sprite.center_y = PLAYER_START_Y
         self.ar_list.append(self.ar_sprite)
-
-
 
         # --- Load in map from tiled editor ---
 
@@ -633,8 +593,6 @@ class MyGame(arcade.Window):
                                                         scaling=TILE_SCALING,
                                                         use_spatial_hash=True)
         
-        
-       
         # other stuff
         # set background color
         if my_map.background_color:
@@ -694,12 +652,6 @@ class MyGame(arcade.Window):
         # Play the song
         self.play_song()
         
-
-        
-
-
-
-
     def on_draw(self):
         # Clear the screen to the background color
         arcade.start_render()
@@ -747,9 +699,6 @@ class MyGame(arcade.Window):
         arcade.draw_text("dont die",
                          10 + self.view_left, 10 + self.view_bottom,
                          arcade.color.WHITE, 20)
-
-        
-
 
     def process_keychange(self):
         """
@@ -821,8 +770,6 @@ class MyGame(arcade.Window):
 
         self.process_keychange() 
 
-
-    
     def on_mouse_press(self, x, y ,botton, modifiers):
         """ Called whenever the mouse button is clicked. """
         
@@ -875,8 +822,7 @@ class MyGame(arcade.Window):
 
         ar_x = self.ar_sprite.center_x
         ar_y = self.ar_sprite.center_y
-        
-
+    
         # Get from the mouse the destination location for the bullet
         # IMPORTANT! If you have a scrolling screen, you will also need
         # to add in self.view_bottom and self.view_left.
@@ -902,9 +848,6 @@ class MyGame(arcade.Window):
             self.player_sprite.character_face_direction = RIGHT_FACING
             self.ar_sprite.AR_face_direction = AR_RIGHT_FACING
         
-
-    
-
     def on_update(self, delta_time):  
 
         position = self.music.get_stream_position(self.current_player)
@@ -1040,19 +983,6 @@ class MyGame(arcade.Window):
                             
             # enemy.attack_impact = False
 
-            
-                
-
-           
-
-            
-        
-
-           
-       
-
-
-       
         "moving platforms"
 
         # Update walls, used with moving platforms
@@ -1115,9 +1045,6 @@ class MyGame(arcade.Window):
         # or by center_x, center_y.
         self.player_light.position = self.player_sprite.position
     
-       
-
-
     # --- Manage Scrolling ---
 
         # Track if we need to change the viewport
@@ -1157,17 +1084,7 @@ class MyGame(arcade.Window):
             arcade.set_viewport(self.view_left,
                                 SCREEN_WIDTH + self.view_left,
                                 self.view_bottom,
-                                SCREEN_HEIGHT + self.view_bottom)
-          
-
-
-        
-
-
-  
-    
-
-        
+                                SCREEN_HEIGHT + self.view_bottom)      
 
 def main():
     """ Main method """
