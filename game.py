@@ -1,15 +1,17 @@
-
 import arcade
 import math
 import os
+from arcade.color import WHITE
 from arcade.experimental.lights import Light, LightLayer
 import time
+from pyglet.libs.win32.constants import IS_TEXT_UNICODE_ASCII16
 from consts import SCREEN_HEIGHT, SCREEN_WIDTH, SCREEN_TITLE, MUSIC_VOLUME, PLAYER_START_X, PLAYER_START_Y, GRID_PIXEL_SIZE, TILE_SCALING, PLAYER_LIGHT_RADIUS, PLAYER_LIGHT_MODE, PLAYER_LIGHT_COLOR, GRAVITY, AMBIENT_COLOR, PLAYER_MOVEMENT_SPEED, PLAYER_JUMP_SPEED, BULLET_SPEED, LEFT_FACING, RIGHT_FACING, ENEMY_FRICTION, ENEMY_ACCELERATION_RATE, ENEMY_MAX_SPEED, ENEMY_TURN_RATE, ENEMY_LEFT_FACING, ENEMY_RIGHT_FACING, LEFT_VIEWPORT_MARGIN, RIGHT_VIEWPORT_MARGIN, TOP_VIEWPORT_MARGIN, BOTTOM_VIEWPORT_MARGIN
 
 from characters.player import PlayerCharacter
 from characters.enemy import Enemy
 from weapons.ar import AR
 from weapons.bullet import Bullet
+from threading import Timer
 
 #Main class of game
 class MyGame(arcade.Window):
@@ -47,8 +49,6 @@ class MyGame(arcade.Window):
         self.ammo_list = None
         self.crate_list = None
 
-        
-
         self.bullet_sprite= None
 
         #var for gun
@@ -60,6 +60,8 @@ class MyGame(arcade.Window):
         self.enemy_sprite = None
 
         self.skybox_sprite = None
+
+        self.info_sprite = None
 
        # physics engine being used
         self.physics_engine = None 
@@ -77,6 +79,7 @@ class MyGame(arcade.Window):
         # Load sounds
         self.gun_sound = arcade.sound.load_sound("sound\gun shot.mp3")
         self.hit_sound = arcade.sound.load_sound("sound\screaming.mp3")
+        self.breathing_sound = arcade.sound.load_sound("sound\player_breathing.mp3")
      
      # --- Light related ---
         # List of all the lights
@@ -93,7 +96,9 @@ class MyGame(arcade.Window):
         self.current_song_index = 0
         self.current_player = None
         self.music = None
- 
+
+        self.draw_info = True
+
     def advance_song(self):
         #Advance our pointer to the next song. This does NOT start the song. 
         self.current_song_index += 1
@@ -173,7 +178,6 @@ class MyGame(arcade.Window):
         self.end_of_map_weight = my_map.map_size.width * GRID_PIXEL_SIZE
         self.end_of_map_height = my_map.map_size.height * GRID_PIXEL_SIZE
         
-
         # platforms
         self.wall_list = arcade.tilemap.process_layer(my_map,
                                                       platforms_layer_name,
@@ -229,20 +233,10 @@ class MyGame(arcade.Window):
         if my_map.background_color:
             arcade.set_background_color(my_map.background_color)
         
-        #   # Create the 'physics engine'
-        # self.physics_engine = arcade.PhysicsEnginePlatformer(self.player_sprite,
-        #                                                      self.wall_list,
-        #                                                      gravity_constant=GRAVITY,
-        #                                                      ladders=self.ladder_list)
-        
         # Create a light layer, used to render things to, then post-process and
         # add lights. This must match the screen size.
         self.light_layer = LightLayer(SCREEN_WIDTH, SCREEN_HEIGHT)
-
-        # We can also set the background color that will be lit by lights,
-        # but in this instance we just want a black background
-        #self.light_layer.set_background_color(arcade.color.BLACK)
-
+        
          # Create a light to follow the player around.
         # We'll position it later, when the player moves.
         # We'll only add it to the light layer when the player turns the light
@@ -279,6 +273,8 @@ class MyGame(arcade.Window):
 
         self.skybox_sprite = arcade.load_texture("assets\sky box.png")
 
+        self.info_sprite = arcade.load_texture("assets\info.png")
+
         #from arcade
         #music list
         # List of music
@@ -287,6 +283,8 @@ class MyGame(arcade.Window):
         self.current_song_index = 0
         # Play the song
         self.play_song()
+
+        arcade.play_sound(self.breathing_sound,0.25,0,True)
         
     def on_draw(self):
         # Clear the screen to the background color
@@ -313,7 +311,7 @@ class MyGame(arcade.Window):
         # 'with' statement. Nothing is rendered to the screen yet, just the light
         # layer.
         with self.light_layer:
-            arcade.draw_texture_rectangle(self.end_of_map_weight // 2, self.end_of_map_height // 2, self.end_of_map_weight*1.5, self.end_of_map_height*1.5, self.skybox_sprite)
+            arcade.draw_texture_rectangle(self.get_viewport()[0], self.get_viewport()[2], self.end_of_map_weight*1.5, self.end_of_map_height*1.5, self.skybox_sprite)
             self.background_list.draw()
             self.wall_list.draw()
             self.ladder_list.draw()
@@ -335,9 +333,21 @@ class MyGame(arcade.Window):
 
         # Now draw anything that should NOT be affected by lighting.
         arcade.draw_text( str(self.player_sprite.ammo)  ,
-                         50 + self.view_left, 50 + self.view_bottom,
+                          110 + self.view_left, 50 + self.view_bottom,
                          arcade.color.WHITE, 20)
+        arcade.draw_text(str("ammo:"),
+                          30 + self.view_left, 50 + self.view_bottom,
+                         arcade.color.WHITE, 20)
+        if self.player_sprite.center_x >= self.end_of_map_weight and self.level == 3:
+                        arcade.draw_text(str("THE END"), 300, 300, WHITE, 12)   
+                                      
+        vp_x = self.get_viewport()[0]
+        vp_y = self.get_viewport()[2]
+        arcade.draw_lrtb_rectangle_filled(vp_x, vp_x + (SCREEN_WIDTH/100) * self.player_sprite.health, vp_y + 30, vp_y, arcade.color.RED)
 
+        if self.draw_info:
+            arcade.draw_texture_rectangle(400, 400, SCREEN_WIDTH/2, SCREEN_HEIGHT/2, self.info_sprite)
+      
     def process_keychange(self):
         """
         Called when we change a key up/down or we move on/off a ladder.
@@ -381,17 +391,13 @@ class MyGame(arcade.Window):
         elif key == arcade.key.RIGHT or key == arcade.key.D:
             self.right_pressed = True
 
-        # elif key == arcade.key.SPACE:
-        #     # --- Light related ---
-        #     # We can add/remove lights from the light layer. If they aren't
-        #     # in the light layer, the light is off.
-        #     if self.player_light in self.light_layer:
-        #         self.light_layer.remove(self.player_light)
-        #     else:
-        #         self.light_layer.add(self.player_light)
+        if key == arcade.key.L:
+            self.setup(self.level)
+
+        if self.draw_info:
+            self.draw_info = False
 
         self.process_keychange()
-
 
     def on_key_release(self, key, modifiers):
         #Called when the user releases a key. 
@@ -410,7 +416,7 @@ class MyGame(arcade.Window):
 
     def on_mouse_press(self, x, y ,botton, modifiers):
         #Called whenever the mouse button is clicked. 
-        
+
         if self.player_sprite.ammo > 0:
             # Create a bullet
             bullet = Bullet(self.light_layer)
@@ -422,7 +428,6 @@ class MyGame(arcade.Window):
         bullet.center_x = start_x
         bullet.center_y = start_y
         
-
         # Get from the mouse the destination location for the bullet
         # IMPORTANT! If you have a scrolling screen, you will also need
         # to add in self.view_bottom and self.view_left.
@@ -448,7 +453,6 @@ class MyGame(arcade.Window):
 
         self.ar_sprite.angle = math.degrees(angle_in_radians)
        
-
         if angle_in_radians > math.pi / 2 or angle_in_radians < -math.pi/2:
             self.player_sprite.character_face_direction = LEFT_FACING
             self.ar_sprite.AR_face_direction = LEFT_FACING
@@ -456,7 +460,6 @@ class MyGame(arcade.Window):
             self.player_sprite.character_face_direction = RIGHT_FACING
             self.ar_sprite.AR_face_direction = RIGHT_FACING
         
-
     def on_mouse_motion(self, x, y, dx, dy):
         """ Called whenever the mouse button is clicked. """
 
@@ -480,14 +483,13 @@ class MyGame(arcade.Window):
         # sideways.
         self.ar_sprite.angle = math.degrees(angle_in_radians)
        
-
         if angle_in_radians > math.pi / 2 or angle_in_radians < -math.pi/2:
             self.player_sprite.character_face_direction = LEFT_FACING
             self.ar_sprite.AR_face_direction = LEFT_FACING
         else:
             self.player_sprite.character_face_direction = RIGHT_FACING
             self.ar_sprite.AR_face_direction = RIGHT_FACING
-        
+
     def on_update(self, delta_time):  
 
         position = self.music.get_stream_position(self.current_player)
@@ -558,35 +560,23 @@ class MyGame(arcade.Window):
                 crate.change_x = self.player_sprite.change_x
             else:
                 crate.change_x = 0
-              
-                
+                     
         #enemy
         self.enemy_list.update()
 
         for enemy in self.enemy_list:                         
 
-            
             #death
             if len(arcade.check_for_collision_with_list(enemy, self.bullet_list)) > 0:
                enemy.take_20_health()
                bullet.kill()
                
-
-
             #If the enemy hit a wall, reverse
-            
             if len(arcade.check_for_collision_with_list(enemy, self.wall_list)) > 0:
                 enemy.change_x *= -1
-
-            #waking up
-            if enemy.health <100 and enemy.awake == False or enemy.awake == False and self.player_sprite.center_x -100 < enemy.center_x and self.player_sprite.center_x +100 > enemy.center_x and self.player_sprite.center_y -100 < enemy.center_y and self.player_sprite.center_y +100 > enemy.center_y: 
-                enemy.awake = True
-                enemy.scream = True
-
-                
             
             #seeing and chasing
-            if enemy.awake == True and arcade.has_line_of_sight(self.player_sprite.position,
+            if  arcade.has_line_of_sight(self.player_sprite.position,
                                                 enemy.position,
                                                 self.wall_list):
 
@@ -617,6 +607,17 @@ class MyGame(arcade.Window):
                 elif enemy.change_x < -ENEMY_MAX_SPEED:
                     enemy.change_x = -ENEMY_MAX_SPEED
 
+            if arcade.has_line_of_sight(self.player_sprite.position,
+                                                                enemy.position,
+                                                                self.wall_list) and self.player_sprite.center_x -100 < enemy.center_x and self.player_sprite.center_x +100 > enemy.center_x and self.player_sprite.center_y -200 < enemy.center_y and self.player_sprite.center_y +200 > enemy.center_y: 
+                self.player_in_striking_range = True
+            else: 
+                self.player_in_striking_range = False
+
+            if self.player_in_striking_range == True:             
+                attack_timer = Timer(0.8, self.check_striking_distance)
+                attack_timer.start()
+                                    
             #enemy turning and face direction
             if enemy.change_x < -ENEMY_TURN_RATE:
                 enemy.face_direction = ENEMY_LEFT_FACING
@@ -627,20 +628,6 @@ class MyGame(arcade.Window):
             if enemy.center_y == -100:
                 enemy.kill()
 
-            # elif enemy.change_x > ENEMY_MAX_WONDER_SPEED:
-            #     enemy.change_x = ENEMY_MAX_WONDER_SPEED
-            # elif enemy.change_x < -ENEMY_MAX_WONDER_SPEED:
-            #     enemy.change_x = -ENEMY_MAX_WONDER_SPEED
-            
-            # if arcade.has_line_of_sight(self.player_sprite.position,
-            #                                 enemy.position,
-            #                                 self.wall_list) and self.player_sprite.center_x -200 < enemy.center_x and self.player_sprite.center_x +200 > enemy.center_x and self.player_sprite.center_y -200 < enemy.center_x and self.player_sprite.center_y +200 > enemy.center_x: 
-            #         enemy.attacking = True
-            #         if enemy.attack_impact == True:
-            #             self.player_sprite.take_20_health()
-            #             enemy.attack_impact = False
-                            
-            # enemy.attack_impact = False
         """
         moving platforms"
         """
@@ -661,8 +648,7 @@ class MyGame(arcade.Window):
 
         # Did the player fall off the map?
         if self.player_sprite.center_y < -100:
-            self.player_sprite.center_x = PLAYER_START_X
-            self.player_sprite.center_y = PLAYER_START_Y
+            self.setup()
 
         # Set the camera to the start
             self.view_left = 0
@@ -674,11 +660,9 @@ class MyGame(arcade.Window):
         if arcade.check_for_collision_with_list(self.player_sprite,
                                                 self.dont_touch_list):
             self.player_sprite.take_20_health()
-            self.player_sprite.take_20_health()
-            self.player_sprite.take_20_health()
-            self.player_sprite.take_20_health()
-            self.player_sprite.take_20_health()
-
+            if self.player_sprite.health <= 0:
+                self.setup(self.level)
+        
             # Set the camera to the start
             self.view_left = 0
             self.view_bottom = 0
@@ -687,10 +671,9 @@ class MyGame(arcade.Window):
 
         # ---manage level---
         # See if the user got to the end of the level
-        if self.player_sprite.center_x >= self.end_of_map_weight and self.level <4:
+        if self.player_sprite.center_x >= self.end_of_map_weight and self.level <3:
             # Advance to the next level
             self.level += 1
-
             # Load the next level
             self.setup(self.level)
 
@@ -743,14 +726,20 @@ class MyGame(arcade.Window):
             arcade.set_viewport(self.view_left,
                                 SCREEN_WIDTH + self.view_left,
                                 self.view_bottom,
-                                SCREEN_HEIGHT + self.view_bottom)      
+                                SCREEN_HEIGHT + self.view_bottom)  
+                                    
+    def check_striking_distance (self):  
+        if self.player_in_striking_range == True:
+            self.player_sprite.take_20_health()
+            if self.player_sprite.health <= 0:
+                self.setup(self.level)
+            arcade.play_sound(self.hit_sound, 0.005)
 
 def main():
     # Main method    
     window = MyGame()
     window.setup(window.level)
     arcade.run()
-
 
 if __name__ == "__main__":
     main()
