@@ -1,6 +1,8 @@
 import arcade
-from consts import RIGHT_FACING, CHARACTER_SCALING, PLAYER_FRAMES, PLAYER_FRAMES_PER_TEXTURE, PLAYER_START_X, PLAYER_START_Y 
+from consts import RIGHT_FACING, CHARACTER_SCALING, PLAYER_FRAMES, PLAYER_FRAMES_PER_TEXTURE
 from utils import load_texture_pair
+from threading import Timer
+
 
 class PlayerCharacter(arcade.Sprite):
     #Player Sprite
@@ -21,6 +23,7 @@ class PlayerCharacter(arcade.Sprite):
         self.jumping = False
         self.climbing = False
         self.is_on_ladder = False
+        self.immune = False
 
         #animation handling
         self.virtual_textures = 0
@@ -58,7 +61,7 @@ class PlayerCharacter(arcade.Sprite):
         self.set_hit_box(self.texture.hit_box_points)
 
         self.health = 100
-        self.ammo = 5
+        self.ammo = 10
 
     def update_animation(self, delta_time: 1/2):
 
@@ -97,8 +100,15 @@ class PlayerCharacter(arcade.Sprite):
             self.texture = self.walk_textures[self.cur_texture][self.character_face_direction]
 
     def take_20_health(self):
-        
-        self.health -= 20
-        if self.health <= 0:
-            self.center_x = PLAYER_START_X
-            self.center_y = PLAYER_START_Y
+        if not self.immune:
+            self.health -= 20
+            self.immune = True
+            vunerable_timer = Timer(0.8, self.make_vunerable)
+            vunerable_timer.start()
+            
+            
+
+    def make_vunerable(self):
+        self.immune = False
+
+
