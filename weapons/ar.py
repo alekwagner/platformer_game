@@ -16,23 +16,12 @@ class AR(arcade.Sprite):
         self.cur_texture = 0
         self.scale = AR_SCALING
 
-       
-
         # --- Load Textures ---
-
-       
         main_path = "assets\weapons\AR\AR"
        
-
         # Load textures 
         self.idle_texture_pair = load_ar_texture_pair(f"{main_path}_idle.png")
         self.firing_texture_pair = load_ar_texture_pair(f"{main_path}_firing.png")
-        
-        """
-        self.walk_textures = []
-        for i in range(2):
-            texture = load_texture_pair(f"{main_path}_walk{i}.png")
-            self.walk_textures.append(texture) """
 
         # Set the initial texture
         self.texture = self.idle_texture_pair[0]
@@ -44,13 +33,5 @@ class AR(arcade.Sprite):
 
     def update_animation(self, delta_time: float = 1/2):
 
-
-      
         self.texture = self.idle_texture_pair[self.AR_face_direction]
         return
-
-        """# Walking animation
-        self.cur_texture += 1
-        if self.cur_texture > 1:
-            self.cur_texture = 0
-        self.texture = self.walk_textures[self.cur_texture][self.character_face_direction]"""

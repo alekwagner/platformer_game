@@ -3,7 +3,6 @@ from consts import RIGHT_FACING, CHARACTER_SCALING, PLAYER_FRAMES, PLAYER_FRAMES
 from utils import load_texture_pair
 from threading import Timer
 
-
 class PlayerCharacter(arcade.Sprite):
     #Player Sprite
     def __init__(self):
@@ -29,28 +28,17 @@ class PlayerCharacter(arcade.Sprite):
         self.virtual_textures = 0
 
         # --- Load Textures ---
-
-       
         main_path = "assets/aniamations/player/"
-       
 
         # Load textures for idle standing 
         self.idle_texture_pair = load_texture_pair(f"{main_path}The waste of space player_idle.png")
         self.jump_texture_pair = load_texture_pair(f"{main_path}The waste of space player_jump.png")
      
-
         # Load textures for walking
         self.walk_textures = []
         for i in range(PLAYER_FRAMES):
             texture = load_texture_pair(f"{main_path}walk/The waste of space player_walk{i}.png")
             self.walk_textures.append(texture)
-
-        # # Load textures for climbing
-        # self.climbing_textures = []
-        # texture = arcade.load_texture(f"{main_path}The waste of space player_climb0.png")
-        # self.climbing_textures.append(texture)
-        # texture = arcade.load_texture(f"{main_path}The waste of space player_climb1.png")
-        # self.climbing_textures.append(texture)
 
         # Set the initial texture
         self.texture = self.idle_texture_pair[0]
@@ -65,26 +53,11 @@ class PlayerCharacter(arcade.Sprite):
 
     def update_animation(self, delta_time: 1/2):
 
-        # # Climbing animation
-        # if self.is_on_ladder:
-        #     self.climbing = True
-        # if not self.is_on_ladder and self.climbing:
-        #     self.climbing = False
-        # if self.climbing and abs(self.change_y) > 1:
-        #     self.cur_climbing_texture += 1
-        #     if self.cur_climbing_texture > 7:
-        #         self.cur_climbing_texture = 0
-        # if self.climbing:
-        #     self.texture = self.climbing_textures[self.cur_climbing_texture // 4]
-        #     return
-
-
         # Jumping animation 
         if self.change_y > 0 and not self.is_on_ladder:
             self.texture = self.jump_texture_pair[self.character_face_direction]
             return
         
-
         # Idle animation 
         if self.change_x == 0 or self.is_on_ladder == True:
             self.texture = self.idle_texture_pair[self.character_face_direction]
@@ -106,9 +79,5 @@ class PlayerCharacter(arcade.Sprite):
             vunerable_timer = Timer(0.8, self.make_vunerable)
             vunerable_timer.start()
             
-            
-
     def make_vunerable(self):
         self.immune = False
-
-

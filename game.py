@@ -501,11 +501,10 @@ class MyGame(arcade.Window):
             self.advance_song()
             self.play_song()
         
-        for engines in self.engines_list:
-            engines.update()
-
         # move player with physics engine        
         # self.physics_engine.update()
+        for engines in self.engines_list:
+            engines.update()
 
         #Update animations 
         if self.physics_engine.can_jump():

@@ -12,13 +12,10 @@ class Bullet(arcade.Sprite):
         self.light = Light( -1000, -1000, 300,(100,100,300),'soft')
         self.light_layer.add(self.light)
 
-        
-
     def update(self):
         self.center_x += self.change_x
         self.center_y += self.change_y
         self.light.position = self.position
-
 
     def kill(self):
         

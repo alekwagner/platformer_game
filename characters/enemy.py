@@ -9,10 +9,6 @@ class Enemy (arcade.Sprite):
         # Set up parent class
         super().__init__()
 
-        """
-        animations
-        """
-
         # Default to face-right
         self.face_direction = RIGHT_FACING
 
@@ -28,28 +24,17 @@ class Enemy (arcade.Sprite):
         self.attack_virtual_textures = 0
 
         # --- Load Textures ---
-
        
         main_path = "assets/aniamations\enemy/"
        
-
         # Load textures for idle standing
         self.idle_texture_pair = load_enemy_texture_pair(f"{main_path}enemy_idle.png")
         
-
         # Load textures for walking
         self.walk_textures = []
         for i in range(ENEMY_WALK_FRAMES):
             texture = load_enemy_texture_pair(f"{main_path}enemy_walk\enemy_walk{i}.png")
             self.walk_textures.append(texture)
-
-
-        # #load attack
-        # self.attack_textures = []
-        # for i in range(ENEMY_ATTACK_FRAMES):
-        #     texture = load_enemy_texture_pair(f"{main_path}enemy_idle.png")
-        #     self.attack_textures.append(texture)
-
 
         # Set the initial texture
         self.texture = self.idle_texture_pair[0]
@@ -83,29 +68,9 @@ class Enemy (arcade.Sprite):
         if (self.walk_virtual_textures +1)%ENEMY_WALK_FRAMES_PER_TEXTURE == 0:
             self.walk_cur_texture = self.walk_virtual_textures // ENEMY_WALK_FRAMES_PER_TEXTURE
             self.texture = self.walk_textures[self.walk_cur_texture][self.face_direction]
-
-        # #attack animation
-        # if self.attacking == True:
-        #     self.attack_virtual_textures +=1
-        #     if self.attack_cur_texture == 20:
-        #         self.attack_impact = True
-        #     else: 
-        #         self.attack_impact = False
-
-        #     if self.attack_cur_texture == ENEMY_ATTACK_FRAMES:
-        #         self.attacking = False
-                
-        #     if self.attack_virtual_textures > ENEMY_ATTACK_FRAMES*ENEMY_ATTACK_FRAMES_PER_TEXTURE -1:
-        #         self.attack_virtual_textures = 0
-        #         self.attack_cur_texture = 0
-        #     if (self.attack_virtual_textures +1)%ENEMY_ATTACK_FRAMES_PER_TEXTURE == 0:
-        #         self.attack_cur_texture = self.attack_virtual_textures // ENEMY_ATTACK_FRAMES_PER_TEXTURE
-        #         self.texture = self.attack_textures[self.attack_cur_texture][self.face_direction]
          
-
     def take_20_health(self):
         #this is what happens when enmey takes damage
         self.health -= 20
         if self.health <= 0:
             self.remove_from_sprite_lists()
-            

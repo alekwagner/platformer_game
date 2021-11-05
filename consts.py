@@ -1,7 +1,7 @@
 #screen var
 SCREEN_WIDTH = 1000
 SCREEN_HEIGHT = 650
-SCREEN_TITLE = "game"
+SCREEN_TITLE = "Waste of Space"
 
 #vol var
 MUSIC_VOLUME = 0.5
@@ -10,7 +10,7 @@ START = 0
 END = 2000
 STEP = 50
 
-#scaling var
+#scaling varww
 CHARACTER_SCALING = 1.2
 TILE_SCALING = 0.5
 SPRITE_SCALING_BULLET = 0.25
@@ -27,16 +27,12 @@ GRAVITY = 1
 PLAYER_JUMP_SPEED = 20
 BULLET_SPEED = 25
 
-
 #enemy mechanics
 ENEMY_ACCELERATION_RATE = 0.1
 ENEMY_FRICTION = 0.05
 ENEMY_MAX_SPEED = 6
 ENEMY_TURN_RATE = 1
 ENEMY_MAX_WONDER_SPEED = 1
-
-
-# scrapped var ENEMY_MAX_WONDER_SPEED = 1
 
 # How many pixels to keep as a minimum margin between the character
 # and the edge of the screen.
